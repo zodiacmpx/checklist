@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Configuración de Notificaciones KPI</title>
+    <style>
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .checkbox-label {
+            margin-left: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Configuración de Notificaciones KPI</h2>
+    <form>
+        <div class="checkbox-container">
+            <input type="checkbox" id="notificacion_casos_sin_asignar">
+            <label for="notificacion_casos_sin_asignar">Notificación de casos sin asignar al superar</label>
+            <input type="number" id="tiempo_casos_sin_asignar" placeholder="minutos">
+            <label for="tiempo_casos_sin_asignar">minutos sin asignación</label>
+        </div>
+
+        <div class="checkbox-container">
+            <input type="checkbox" id="notificacion_tiempo_caso_sin_asignar">
+            <label for="notificacion_tiempo_caso_sin_asignar">Notificación del tiempo que lleva un caso sin ser asignado</label>
+        </div>
+
+        <div class="checkbox-container">
+            <input type="checkbox" id="notificacion_desempeno_brigada">
+            <label for="notificacion_desempeno_brigada">Notificación al superar límite inferior de</label>
+            <input type="number" id="limite_inferior_desempeno" placeholder="%">
+            <label for="limite_inferior_desempeno">% de desempeño de brigada</label>
+        </div>
+
+        <div class="checkbox-container">
+            <input type="checkbox" id="notificacion_asignaciones_excedidas">
+            <label for="notificacion_asignaciones_excedidas">Notificación cuando una brigada exceda el número máximo de asignaciones</label>
+        </div>
+
+        <div class="checkbox-container">
+            <input type="checkbox" id="notificacion_tiempo_respuesta_promedio">
+            <label for="notificacion_tiempo_respuesta_promedio">Notificación cuando el tiempo de respuesta promedio supere</label>
+            <input type="number" id="limite_tiempo_respuesta" placeholder="minutos">
+            <label for="limite_tiempo_respuesta">minutos</label>
+        </div>
+
+        <div class="checkbox-container">
+            <input type="checkbox" id="notificacion_incumplimiento_slas">
+            <label for="notificacion_incumplimiento_slas">Notificación de incumplimiento de SLAs</label>
+        </div>
+
+        <button type="submit">Guardar Configuración</button>
+    </form>
+</body>
+</html>
