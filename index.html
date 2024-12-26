@@ -37,5 +37,52 @@
     </style>
 </head>
 <body>
-    </body>
+    <h2>Configuración de Notificaciones KPI de Brigada</h2>
+    <h3>Estado de la Brigada</h3>
+    <div class="checkbox-container">
+        <input type="checkbox" id="notificacion_estado_inactivo">
+        <label for="notificacion_estado_inactivo">Notificar cuando la brigada esté inactiva por más de</label>
+        <input type="number" id="tiempo_inactividad" placeholder="horas">
+        <label for="tiempo_inactividad">horas</label>
+    </div>
+
+    <h3>Velocidad de Traslado</h3>
+    <div class="checkbox-container">
+        <input type="checkbox" id="notificacion_velocidad_baja">
+        <label for="notificacion_velocidad_baja">Notificar cuando la velocidad promedio de la brigada sea inferior a</label>
+        <input type="number" id="velocidad_minima" placeholder="km/h">
+        <label for="velocidad_minima">km/h</label>
+    </div>
+
+    <h3>KPIs Específicos</h3>
+    <div class="checkbox-container">
+        <input type="checkbox" id="notificacion_kpi_comercial">
+        <label for="notificacion_kpi_comercial">Notificar cuando el KPI comercial esté por debajo de</label>
+        <input type="number" id="limite_kpi_comercial" placeholder="%">
+        <label for="limite_kpi_comercial">%</label>
+    </div>
+    <div class="checkbox-container">
+        <input type="checkbox" id="notificacion_kpi_tecnico">
+        <label for="notificacion_kpi_tecnico">Notificar cuando el KPI técnico esté por debajo de</label>
+        <input type="number" id="limite_kpi_tecnico" placeholder="%">
+        <label for="limite_kpi_tecnico">%</label>
+    </div>
+
+    <h3>Otros Indicadores</h3>
+    <div class="checkbox-container">
+        <input type="checkbox" id="notificacion_oa_activada">
+        <label for="notificacion_oa_activada">Notificar cuando se active una Orden de Atención (OA)</label>
+    </div>
+    <div class="checkbox-container">
+        <input type="checkbox" id="notificacion_fuera_de_plazo">
+        <label for="notificacion_fuera_de_plazo">Notificar cuando la brigada esté fuera de plazo según la densidad</label>
+    </div>
+    <div class="checkbox-container">
+        <input type="checkbox" id="notificacion_integrantes_faltantes">
+        <label for="notificacion_integrantes_faltantes">Notificar cuando falten integrantes en la brigada</label>
+    </div>
+
+    <button type="submit">Guardar Configuración</button>
+</body>
+</html>
 </html>
