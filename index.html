@@ -1,80 +1,499 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-    <title>Configuración de KPI de Brigada</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Monitor de Brigadas</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --panel-soft: #1f2937;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --ok: #22c55e;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+      --line: #374151;
+      --chip: #0b1220;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
 
-        h2, h3 {
-            margin-bottom: 10px;
-        }
+    * { box-sizing: border-box; }
 
-        .checkbox-container {
-            display: flex;
-            align-items: center;
-            margin-bottom: 10px;
-        }
+    body {
+      margin: 0;
+      font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
+      background: #020617;
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+    }
 
-        .checkbox-label {
-            margin-left: 5px;
-        }
+    .sidebar {
+      width: min(430px, 100%);
+      background: linear-gradient(180deg, #111827 0%, #0b1220 100%);
+      border-right: 1px solid #1f2937;
+      height: 100vh;
+      overflow: auto;
+      padding: 14px;
+    }
 
-        input[type="number"] {
-            width: 50px;
-        }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px;
+      box-shadow: var(--shadow);
+      margin-bottom: 12px;
+    }
 
-        button {
-            padding: 10px 20px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-    </style>
+    h1 {
+      margin: 0;
+      font-size: 1.05rem;
+      letter-spacing: .3px;
+    }
+
+    .subtitle { color: var(--muted); font-size: .83rem; margin-top: 4px; }
+
+    .controls label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 4px; }
+    .controls input, .controls select, .controls button {
+      width: 100%;
+      padding: 9px 10px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: #0b1220;
+      color: var(--text);
+      margin-bottom: 8px;
+      font-size: .85rem;
+    }
+
+    .controls button {
+      background: #1d4ed8;
+      border-color: #1d4ed8;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: .8rem;
+      color: var(--muted);
+    }
+
+    .brigade {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #111827;
+      margin-bottom: 10px;
+      overflow: hidden;
+    }
+
+    .brigade-header {
+      padding: 11px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      background: linear-gradient(120deg, rgba(148,163,184,.13) 0%, rgba(15,23,42,.12) 100%);
+      border-bottom: 1px solid #243041;
+    }
+
+    .brigade-title {
+      font-weight: 700;
+      font-size: .9rem;
+      margin-bottom: 2px;
+    }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+    .chip {
+      background: var(--chip);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: .72rem;
+      color: var(--muted);
+    }
+
+    .badge {
+      align-self: start;
+      font-size: .72rem;
+      border-radius: 999px;
+      padding: 4px 9px;
+      font-weight: 700;
+      border: 1px solid;
+    }
+
+    .active { color: #86efac; border-color: #15803d; background: rgba(21,128,61,.25); }
+    .inactive { color: #fde68a; border-color: #d97706; background: rgba(217,119,6,.22); }
+    .unknown { color: #bfdbfe; border-color: #3b82f6; background: rgba(59,130,246,.18); }
+
+    .task-table { width: 100%; border-collapse: collapse; font-size: .76rem; }
+    .task-table th, .task-table td {
+      border-bottom: 1px solid #243041;
+      padding: 6px 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .task-table th {
+      color: #93c5fd;
+      font-weight: 600;
+      background: #0b1220;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    .task-table tr:last-child td { border-bottom: none; }
+    .ok { color: var(--ok); font-weight: 700; }
+    .late { color: var(--danger); font-weight: 700; }
+    .ontime { color: var(--ok); font-weight: 700; }
+    .muted { color: var(--muted); }
+
+    .empty {
+      border: 1px dashed #334155;
+      border-radius: 12px;
+      color: var(--muted);
+      font-size: .85rem;
+      padding: 12px;
+      text-align: center;
+    }
+
+    .content-placeholder {
+      flex: 1;
+      display: grid;
+      place-items: center;
+      color: #475569;
+      padding: 20px;
+      text-align: center;
+    }
+
+    @media (max-width: 920px) {
+      .content-placeholder { display: none; }
+      .sidebar { width: 100%; }
+    }
+  </style>
 </head>
 <body>
-    <h2>Configuración de KPI de Brigada</h2>
+  <aside class="sidebar">
+    <section class="panel">
+      <h1>Monitor de Brigadas (Tiempo real)</h1>
+      <p class="subtitle">Actualización sugerida cada 5 minutos desde Excel (Hoja: <strong>Informe de tareas</strong>).</p>
 
-    <h3>Estado de la Brigada</h3>
-    <div class="checkbox-container">
-        <input type="checkbox" id="visualizacion_estado_inactivo">
-        <label for="visualizacion_estado_inactivo">Visualización de estado inactivo </label>
-    </div>
+      <div class="controls">
+        <label for="reportUrl">URL de reporte (SharePoint/descarga directa)</label>
+        <input id="reportUrl" type="text" placeholder="Pega aquí la URL del reporte" />
 
-    <h3>Velocidad de Traslado</h3>
-    <div class="checkbox-container">
-        <input type="checkbox" id="visualizacion_velocidad_baja">
-        <label for="visualizacion_velocidad_baja">Visualización de baja velocidad </label>
-    </div>
+        <label for="reportFile">o carga manual del archivo .xlsx</label>
+        <input id="reportFile" type="file" accept=".xlsx,.xls" />
 
-    <h3>KPIs Específicos</h3>
-    <div class="checkbox-container">
-        <input type="checkbox" id="visualizacion_kpi_comercial">
-        <label for="visualizacion_kpi_comercial">Visualización de KPI comercial </label>
-    </div>
-    <div class="checkbox-container">
-        <input type="checkbox" id="visualizacion_kpi_tecnico">
-        <label for="visualizacion_kpi_tecnico">Visualización de  KPI técnico )</label>
-    </div>
+        <label for="zoneFilter">Zona</label>
+        <select id="zoneFilter">
+          <option value="">Todas las zonas</option>
+        </select>
 
-    <h3>Otros Indicadores</h3>
-    <div class="checkbox-container">
-        <input type="checkbox" id="visualizacion_oa_activada">
-        <label for="visualizacion_oa_activada">Visualización de Orden de Atención (OA) activada</label>
-    </div>
-    <div class="checkbox-container">
-        <input type="checkbox" id="visualizacion_fuera_de_plazo">
-        <label for="visualizacion_fuera_de_plazo">Visualización de plazo según la densidad de OA </label>
-    </div>
-        <div class="checkbox-container">
-        <input type="checkbox" id="visualizacion_integrantes_faltantes">
-        <label for="visualizacion_integrantes_faltantes">Visualización de integrantes de la brigada</label>
-    </div>
+        <button id="refreshBtn" type="button">Actualizar ahora</button>
+      </div>
 
-    <button type="submit">Guardar Configuración</button>
+      <div class="status">
+        <span id="syncInfo">Sin sincronizar</span>
+        <span id="countInfo">0 brigadas</span>
+      </div>
+    </section>
+
+    <div id="brigadeList" class="panel">
+      <div class="empty">Aún no hay datos. Carga el Excel o configura la URL y presiona "Actualizar ahora".</div>
+    </div>
+  </aside>
+
+  <main class="content-placeholder">
+    <div>
+      <h2>Vista Sidebar</h2>
+      <p>Este panel está optimizado para dejarlo fijo en un monitor operativo.</p>
+    </div>
+  </main>
+
+  <script>
+    const REFRESH_MS = 5 * 60 * 1000;
+
+    const state = {
+      rows: [],
+      zone: '',
+      url: '',
+      timer: null,
+      lastSync: null,
+    };
+
+    const els = {
+      reportUrl: document.getElementById('reportUrl'),
+      reportFile: document.getElementById('reportFile'),
+      zoneFilter: document.getElementById('zoneFilter'),
+      refreshBtn: document.getElementById('refreshBtn'),
+      brigadeList: document.getElementById('brigadeList'),
+      syncInfo: document.getElementById('syncInfo'),
+      countInfo: document.getElementById('countInfo'),
+    };
+
+    const normalize = (v) => String(v ?? '').trim();
+    const key = (v) => normalize(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+    function findColumn(headers, aliases) {
+      const normalizedHeaders = headers.map(h => key(h));
+      for (const alias of aliases) {
+        const target = key(alias);
+        const idx = normalizedHeaders.findIndex(h => h === target || h.includes(target));
+        if (idx >= 0) return headers[idx];
+      }
+      return null;
+    }
+
+    function parseDurationMinutes(row, colDuration, colStart, colEnd) {
+      const raw = normalize(row[colDuration]);
+      const toNumber = Number(raw.replace(',', '.'));
+      if (!Number.isNaN(toNumber) && Number.isFinite(toNumber) && toNumber >= 0) return toNumber;
+
+      const start = parseExcelDate(row[colStart]);
+      const end = parseExcelDate(row[colEnd]);
+      if (start && end && end >= start) return Math.round((end - start) / 60000);
+      return null;
+    }
+
+    function parseExcelDate(value) {
+      if (value === undefined || value === null || value === '') return null;
+      if (value instanceof Date && !isNaN(value.getTime())) return value;
+
+      if (typeof value === 'number') {
+        const utcDays = Math.floor(value - 25569);
+        const utcValue = utcDays * 86400;
+        const dateInfo = new Date(utcValue * 1000);
+        const fractionalDay = value - Math.floor(value) + 0.0000001;
+        let totalSeconds = Math.floor(86400 * fractionalDay);
+        const seconds = totalSeconds % 60;
+        totalSeconds -= seconds;
+        const hours = Math.floor(totalSeconds / (60 * 60));
+        const minutes = Math.floor(totalSeconds / 60) % 60;
+        return new Date(dateInfo.getFullYear(), dateInfo.getMonth(), dateInfo.getDate(), hours, minutes, seconds);
+      }
+
+      const parsed = new Date(value);
+      return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+
+    function formatDateTime(date) {
+      if (!date) return '-';
+      return new Intl.DateTimeFormat('es-CL', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }).format(date);
+    }
+
+    function taskThreshold(taskType) {
+      const t = key(taskType);
+      if (t.includes('comercial')) return 45;
+      if (t.includes('tecnic')) return 60;
+      return null;
+    }
+
+    function evaluateTask(task) {
+      const limit = taskThreshold(task.taskType);
+      if (limit === null || task.durationMin === null) return { late: false, icon: '⚪', label: 'Sin regla' };
+      const late = task.durationMin > limit;
+      return {
+        late,
+        icon: late ? '🔴' : '🟢',
+        label: late ? `Fuera de tiempo (${limit}m)` : `Dentro de tiempo (${limit}m)`,
+      };
+    }
+
+    function brigadeStatusLabel(raw) {
+      const v = key(raw);
+      if (v.includes('activo') || v.includes('operativ')) return { label: 'Activa', className: 'active' };
+      if (v.includes('inactiv') || v.includes('deten') || v.includes('pausa')) return { label: 'No operativa', className: 'inactive' };
+      return { label: normalize(raw) || 'Sin estado', className: 'unknown' };
+    }
+
+    function mapRows(rawRows) {
+      if (!rawRows.length) return [];
+
+      const headers = Object.keys(rawRows[0]);
+      const colBrigade = findColumn(headers, ['brigada', 'id brigada', 'codigo brigada']);
+      const colZone = findColumn(headers, ['zona', 'sector']);
+      const colBrigadeType = findColumn(headers, ['tipo de brigada', 'tipo brigada']);
+      const colTask = findColumn(headers, ['tarea', 'actividad', 'descripcion']);
+      const colTaskType = findColumn(headers, ['tipo tarea', 'categoria tarea', 'clase']);
+      const colTaskStatus = findColumn(headers, ['estado tarea', 'estado']);
+      const colDuration = findColumn(headers, ['duracion', 'minutos', 'tiempo']);
+      const colStart = findColumn(headers, ['inicio', 'hora inicio', 'fecha inicio']);
+      const colEnd = findColumn(headers, ['termino', 'fin', 'hora termino', 'fecha termino']);
+      const colBrigadeState = findColumn(headers, ['estado brigada', 'estado cuadrilla', 'operativa']);
+
+      return rawRows.map(r => {
+        const start = parseExcelDate(r[colStart]);
+        const end = parseExcelDate(r[colEnd]);
+        return {
+          brigade: normalize(r[colBrigade]) || 'Brigada s/n',
+          zone: normalize(r[colZone]) || 'Sin zona',
+          brigadeType: normalize(r[colBrigadeType]) || 'Sin tipo',
+          brigadeState: normalize(r[colBrigadeState]) || '',
+          task: normalize(r[colTask]) || 'Tarea sin nombre',
+          taskType: normalize(r[colTaskType]) || 'Sin categoría',
+          taskStatus: normalize(r[colTaskStatus]) || 'Sin estado',
+          durationMin: parseDurationMinutes(r, colDuration, colStart, colEnd),
+          start,
+          end,
+        };
+      });
+    }
+
+    function groupBrigades(rows) {
+      const grouped = new Map();
+      rows.forEach(row => {
+        if (state.zone && row.zone !== state.zone) return;
+        const id = `${row.zone}__${row.brigade}`;
+        if (!grouped.has(id)) {
+          grouped.set(id, {
+            id,
+            brigade: row.brigade,
+            zone: row.zone,
+            brigadeType: row.brigadeType,
+            brigadeState: row.brigadeState,
+            tasks: [],
+          });
+        }
+        grouped.get(id).tasks.push(row);
+      });
+      return [...grouped.values()].sort((a, b) => a.brigade.localeCompare(b.brigade));
+    }
+
+    function renderZoneFilter(rows) {
+      const zones = [...new Set(rows.map(r => r.zone))].sort((a, b) => a.localeCompare(b));
+      const current = state.zone;
+      els.zoneFilter.innerHTML = '<option value="">Todas las zonas</option>' +
+        zones.map(z => `<option value="${z}">${z}</option>`).join('');
+      els.zoneFilter.value = zones.includes(current) ? current : '';
+      state.zone = els.zoneFilter.value;
+    }
+
+    function render() {
+      const brigades = groupBrigades(state.rows);
+      els.countInfo.textContent = `${brigades.length} brigadas`;
+
+      if (!brigades.length) {
+        els.brigadeList.innerHTML = '<div class="empty">No hay brigadas para el filtro seleccionado.</div>';
+        return;
+      }
+
+      els.brigadeList.innerHTML = brigades.map(brigade => {
+        const status = brigadeStatusLabel(brigade.brigadeState);
+        const taskRows = brigade.tasks.map(task => {
+          const evalResult = evaluateTask(task);
+          const durationTxt = task.durationMin === null ? '-' : `${task.durationMin}m`;
+          return `
+            <tr>
+              <td>${task.task}</td>
+              <td>${task.taskStatus}</td>
+              <td>${task.taskType}</td>
+              <td class="${evalResult.late ? 'late' : 'ontime'}">${evalResult.icon} ${durationTxt}</td>
+              <td class="muted">${formatDateTime(task.start)}</td>
+              <td class="muted">${formatDateTime(task.end)}</td>
+            </tr>
+          `;
+        }).join('');
+
+        return `
+          <article class="brigade">
+            <header class="brigade-header">
+              <div>
+                <div class="brigade-title">${brigade.brigade}</div>
+                <div class="subtitle">${brigade.zone}</div>
+                <div class="chips">
+                  <span class="chip">${brigade.brigadeType}</span>
+                  <span class="chip">${brigade.tasks.length} tareas</span>
+                </div>
+              </div>
+              <span class="badge ${status.className}">${status.label}</span>
+            </header>
+            <div style="max-height:220px; overflow:auto;">
+              <table class="task-table">
+                <thead>
+                  <tr>
+                    <th>Tarea</th>
+                    <th>Estado</th>
+                    <th>Tipo</th>
+                    <th>Duración</th>
+                    <th>Inicio</th>
+                    <th>Término</th>
+                  </tr>
+                </thead>
+                <tbody>${taskRows}</tbody>
+              </table>
+            </div>
+          </article>
+        `;
+      }).join('');
+    }
+
+    async function parseWorkbook(arrayBuffer) {
+      const workbook = XLSX.read(arrayBuffer, { type: 'array', cellDates: true });
+      const targetSheetName = workbook.SheetNames.find(name => key(name).includes('informe de tareas')) || workbook.SheetNames[0];
+      const ws = workbook.Sheets[targetSheetName];
+      const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      return mapRows(json);
+    }
+
+    async function fetchReportFromUrl() {
+      const url = normalize(els.reportUrl.value);
+      if (!url) throw new Error('Debes ingresar una URL de reporte.');
+
+      const response = await fetch(url, { cache: 'no-store' });
+      if (!response.ok) throw new Error(`No se pudo descargar el reporte (${response.status}).`);
+      return response.arrayBuffer();
+    }
+
+    async function refreshData() {
+      try {
+        let buffer = null;
+
+        if (els.reportFile.files[0]) {
+          buffer = await els.reportFile.files[0].arrayBuffer();
+        } else if (normalize(els.reportUrl.value)) {
+          buffer = await fetchReportFromUrl();
+        } else {
+          throw new Error('Carga un archivo o define la URL del reporte.');
+        }
+
+        state.rows = await parseWorkbook(buffer);
+        state.lastSync = new Date();
+
+        renderZoneFilter(state.rows);
+        render();
+
+        els.syncInfo.textContent = `Última actualización: ${new Intl.DateTimeFormat('es-CL', {
+          hour: '2-digit', minute: '2-digit', second: '2-digit', day: '2-digit', month: '2-digit'
+        }).format(state.lastSync)}`;
+      } catch (error) {
+        els.syncInfo.textContent = `Error: ${error.message}`;
+      }
+    }
+
+    function startAutoRefresh() {
+      if (state.timer) clearInterval(state.timer);
+      state.timer = setInterval(refreshData, REFRESH_MS);
+    }
+
+    els.zoneFilter.addEventListener('change', (e) => {
+      state.zone = e.target.value;
+      render();
+    });
+
+    els.refreshBtn.addEventListener('click', refreshData);
+    els.reportFile.addEventListener('change', refreshData);
+    els.reportUrl.addEventListener('change', () => {
+      startAutoRefresh();
+    });
+
+    startAutoRefresh();
+  </script>
 </body>
 </html>
